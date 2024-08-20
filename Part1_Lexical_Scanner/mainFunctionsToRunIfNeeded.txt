@@ -1,0 +1,31 @@
+Use the following main function to test the c file if wanted
+
+int main() {
+    struct token t;      // Ensure this structure is defined properly
+    int i;
+
+    // Open the input file
+    Infile = fopen("input.txt", "r");
+    if (Infile == NULL) {
+        fprintf(stderr, "Unable to open input file\n");
+        exit(1);
+    }
+
+    // Initialize global variables
+    Putback = 0;
+    Line = 1;
+
+    for (i = 0; i < 10; i++) {
+        if (scan(&t) == 0) {
+            printf("No more tokens\n");
+            break;
+        }
+        printf("Token: %d\n", t.token);
+        if (t.token == T_INTLIT)
+            printf("Value: %d\n", t.intValue);
+        printf("\n");
+    }
+
+    fclose(Infile);  // Close the input file
+    return 0;
+}
