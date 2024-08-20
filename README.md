@@ -1,6 +1,6 @@
 OFFICIAL README FILE
 
-<h1 color:"red">Compiler</h1>
+<h1 align="center">Compiler</h1>
 
 In this Github repository. I am going to upload the flow of building a Compiler in detail.
 
