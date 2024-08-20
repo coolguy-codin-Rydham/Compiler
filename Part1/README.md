@@ -105,3 +105,193 @@ static int skip(void){
 
 }
 ```
+
+<h2>Scanning Tokens and intValue</h2>
+
+Now to write our own first lexical scanner
+
+```c
+int scan(struct token *t)
+{
+    int c;
+
+    // Skip whitespace
+    c = skip();
+
+    // Determine the token based on
+    // the input character
+    switch (c)
+    {
+    case EOF:
+        return (0);
+    case '+':
+        t->token = T_PLUS;
+        break;
+    case '-':
+        t->token = T_MINUS;
+        break;
+    case '*':
+        t->token = T_STAR;
+        break;
+    case '/':
+        t->token = T_SLASH;
+        break;
+    default:
+
+        // If it's a digit, scan the
+        // literal integer value in
+        if (isdigit(c))
+        {
+            t->intValue = scanint(c);
+            t->token = T_INTLIT;
+            break;
+        }
+
+        printf("Unrecognised character %c on line %d\n", c, Line);
+        exit(1);
+    }
+
+    // We found a token
+    return (1);
+}
+
+```
+
+This piece of code handles the value of tokens and also takes in value of Digits
+
+<b>Here is the implementation of `scanint` function</b>
+
+Once we hit a decimal digit character, we call the helper function `scanint()` with this first character. It will return the scanned integer value. To do this, it has to read each character in turn, check that it's a legitimate digit, and build up the final number. Here is the code:
+
+```c
+static int scanint(int c)
+{
+    int k, val = 0;
+
+    // Convert each character into an int value
+    while ((k = chrpos("0123456789", c)) >= 0)
+    {
+        val = val * 10 + k;
+        c = next();
+    }
+
+    // We hit a non-integer character, put it back.
+    putback(c);
+    return val;
+}
+
+```
+
+We start with 0 `val` value. Each time we get a character in the set `0` to `9` we convert this to an `int` value with `chrpos()`. We make `val` 10 times bigger and then adds this new digit to it.
+
+For example, if we have the characters 5, 1, 2, we do:
+
+<ul>
+    <li>val= 0 * 10 + 5, i.e. 5</li>
+    <li>val= 5 * 10 + 1, i.e. 51</li>
+    <li>val= 51 * 10 + 2, i.e. 512</li>
+</ul>
+
+Right at the end, we called the function `putback(c)`. We found a character that's not a decimal digit at this point.
+Since we cant discard it, we can put it back in the input stream to consume later.
+
+Later we can also use chrpos("0123456789abcdef") to work for hexadecimal digits as well.
+
+Here's the `chrpos()` function:
+
+```c
+static int chrpos(char *s, int c)
+{
+    char *p;
+
+    p = strchr(s, c);
+    return (p ? p - s : -1);
+}
+```
+
+<br><br>
+
+<h2>Now Let's put the Scanner to Work</h2>
+
+The code in `main.c` puts the above scanner to work. The `main()` function opens up a file and then scans it for tokens:
+
+```c
+void main(int argc, char *argc[]){
+    ...
+    init();
+    ...
+
+    Infile = fopen(argv[1], "r");
+    ...
+    scanFile();
+    exit(0);
+}
+```
+
+And `scanfile()` loops while there is a new token and prints out the details of the token:
+
+```c
+char *tokstr[] = { "+", "-", "*", "/", "intlit" };
+static void scanfile() {
+  struct token T;
+
+  while (scan(&T)) {
+    printf("Token %s", tokstr[T.token]);
+    if (T.token == T_INTLIT)
+      printf(", value %d", T.intValue);
+    printf("\n");
+  }
+}
+```
+
+<h2>Test Cases</h2>
+
+The 4 files input01, input02, input03, input04 can be used to see what the tokens the scanner finds out after parsing each file, and what input files the scanner. Edge cases also exist.
+
+```bash
+$ gcc -o scanner -g main.c scan.c
+
+$ cat input01
+2 + 4 * 5 - 8 / 3
+
+$ cat input04
+23 +
+18 -
+45.6 * 2
+/   19
+
+$ ./scanner input01
+Token intlit, value 2
+Token +
+Token intlit, value 4
+Token *
+Token intlit, value 5
+Token -
+Token intlit, value 8
+Token /
+Token intlit, value 3
+
+$ ./scanner input04
+Token intlit, value 23
+Token +
+Token intlit, value 18
+Token -
+Token intlit, value 45
+Unrecognized character . on line 3
+
+```
+
+<h2>Conclusion and What's Next</h2>
+
+We've started small and we have a simple lexical scanner that recognizes the four main maths operators and also integer literal values. We saw that we needed to skip whitespace and put back characters if we read too far into the input.
+
+Single character tokens are easy to scan, but multi-character tokens are a bit harder. But in the end, the scan() function returns the next token from the input file in a `struct token` variable:
+
+```c
+struct token
+{
+    int token;
+    int intValue;
+};
+
+```
