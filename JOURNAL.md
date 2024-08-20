@@ -6,3 +6,4 @@ Part1:
 Woah! Lexical scanning let's see what the devil this is.
 
 Lexical scanning sure is interesting bhyi maza aara hai karke
+well the Part1 was good and not too difficult.

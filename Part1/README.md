@@ -90,7 +90,7 @@ static void putback(int c)
 
 <h3>Ignoring Whitespace</h3>
 
-To read and silently skip whitespace characters until it gets to a non-whitespace character and also return it.
+To read and skip whitespace characters until it gets to a non-whitespace character and also return it.
 
 ```c
 static int skip(void){
