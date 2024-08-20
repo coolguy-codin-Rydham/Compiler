@@ -7,4 +7,4 @@ A lexical scanner (or lexer for short) is a fundamental component in the process
 <i>This is the GPT Definition of a Lexer</i>
 
 <b>My definition goes like:-</b>
-Imagine you are backpacking through we
+Imagine you are backpacking through western Europe
