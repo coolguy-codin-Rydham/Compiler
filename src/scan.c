@@ -12,15 +12,15 @@ static int chrpos(char *s, int c) {
 static int next(void) {
   int c;
 
-  if (Putback) {		
+  if (Putback) {	
     c = Putback;		
     Putback = 0;
     return c;
   }
 
-  c = fgetc(Infile);
+  c = fgetc(Infile);	
   if ('\n' == c)
-    Line++;
+    Line++;		
   return c;
 }
 
@@ -37,7 +37,6 @@ static int skip(void) {
   }
   return (c);
 }
-
 static int scanint(int c) {
   int k, val = 0;
 
@@ -54,7 +53,6 @@ int scan(struct token *t) {
   int c;
 
   c = skip();
-
   switch (c) {
   case EOF:
     t->token = T_EOF;
@@ -72,6 +70,7 @@ int scan(struct token *t) {
     t->token = T_SLASH;
     break;
   default:
+
     if (isdigit(c)) {
       t->intvalue = scanint(c);
       t->token = T_INTLIT;

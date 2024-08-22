@@ -7,7 +7,7 @@ enum {
 };
 
 struct token {
-  int token;
+  int token;				
   int intvalue;
 };
 
@@ -17,7 +17,7 @@ enum {
 
 struct ASTnode {
   int op;				
-  struct ASTnode *left;	
+  struct ASTnode *left;			
   struct ASTnode *right;
-  int intvalue;			
+  int intvalue;
 };
