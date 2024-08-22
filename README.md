@@ -713,7 +713,7 @@ Unrecognised character a on line 1
 
 ```
 
-<h2>Conclusion</h2>
+<h3>Conclusion</h3>
 A parser recognizes the grammar/ syntax of the language and checks that the input to the compiler conforms to this grammar. It it doesn't, the parser should print out an error message.
 
 Right now out parser works but doesn't output the value correctly.
@@ -757,7 +757,6 @@ To achieve this we must add code to our parser to perform operator precedence. T
         Influencing the existing parser with an operator precedence table
     </li>
 </ul>
-
 
 ## Pratt Parsing
 
@@ -816,9 +815,7 @@ Pratt parsing is commonly used in interpreters and compilers, particularly for p
 
 ```
 
-
 Complete overview of new expr.c file
-
 
 Function Overview
 
@@ -847,7 +844,7 @@ Function Overview
 
 Dry Run
 
-Let's assume we are parsing the expression 2 + 3 * 4. The tokens would be:
+Let's assume we are parsing the expression 2 + 3 \* 4. The tokens would be:
 
     T_INTLIT(2)
     T_PLUS
@@ -911,11 +908,11 @@ The final AST will represent the expression as follows:
        /         \
       3           4
 ```
-This tree structure respects operator precedence, where multiplication is evaluated before addition, ensuring the correct evaluation of the expression 2 + 3 * 4 as 2 + 12, resulting in 14.
 
+This tree structure respects operator precedence, where multiplication is evaluated before addition, ensuring the correct evaluation of the expression 2 + 3 \* 4 as 2 + 12, resulting in 14.
 
 ```bash
-$ gcc -o parser -g scan.c tree.c main.c Interp.c expr.c 
+$ gcc -o parser -g scan.c tree.c main.c Interp.c expr.c
 
 $ cat input01
 2 + 4 * 5 - 8 / 3
@@ -954,7 +951,6 @@ int 3
 
 ```
 
-
 ## Conclusion and What's Next
 
 It's probably time step back a bit and see where we've got to. We now have:
@@ -965,3 +961,254 @@ It's probably time step back a bit and see where we've got to. We now have:
 <li>A precedence table for the parser that implements the semantics of our language</li>
 <li>An interpreter that traverses the Abstract Syntax Tree depth-first and calculates the result of the expression in the input</li>
 </ul>
+
+
+<br><br>
+
+<h2>Actual Compiler</h2>
+It's about time we start making the actual thing. So let's replace the interpreter into our program that generated x86-64 assembly code.
+
+These are  the operations that are used to give assembly commands using the C. Following is the function for freeall Registers, allocate Registers, Free Register, code generateor for preamble code generator for postamble and for loading, arithmetic operations and printing.
+
+```c
+
+//File name cg.c
+#include "defs.h"
+#include "data.h"
+#include "decl.h"
+
+static int freereg[4];
+static char *reglist[4]= { "%r8", "%r9", "%r10", "%r11" };
+
+void freeall_registers(void)
+{
+  freereg[0]= freereg[1]= freereg[2]= freereg[3]= 1;
+}
+
+static int alloc_register(void)
+{
+  for (int i=0; i<4; i++) {
+    if (freereg[i]) {
+      freereg[i]= 0;
+      return(i);
+    }
+  }
+  fprintf(stderr, "Out of registers!\n");
+  exit(1);
+}
+static void free_register(int reg)
+{
+  if (freereg[reg] != 0) {
+    fprintf(stderr, "Error trying to free register %d\n", reg);
+    exit(1);
+  }
+  freereg[reg]= 1;
+}
+
+void cgpreamble()
+{
+  freeall_registers();
+  fputs(
+	"\t.text\n"
+	".LC0:\n"
+	"\t.string\t\"%d\\n\"\n"
+	"printint:\n"
+	"\tpushq\t%rbp\n"
+	"\tmovq\t%rsp, %rbp\n"
+	"\tsubq\t$16, %rsp\n"
+	"\tmovl\t%edi, -4(%rbp)\n"
+	"\tmovl\t-4(%rbp), %eax\n"
+	"\tmovl\t%eax, %esi\n"
+	"\tleaq	.LC0(%rip), %rdi\n"
+	"\tmovl	$0, %eax\n"
+	"\tcall	printf@PLT\n"
+	"\tnop\n"
+	"\tleave\n"
+	"\tret\n"
+	"\n"
+	"\t.globl\tmain\n"
+	"\t.type\tmain, @function\n"
+	"main:\n"
+	"\tpushq\t%rbp\n"
+	"\tmovq	%rsp, %rbp\n",
+  Outfile);
+}
+
+void cgpostamble()
+{
+  fputs(
+	"\tmovl	$0, %eax\n"
+	"\tpopq	%rbp\n"
+	"\tret\n",
+  Outfile);
+}
+
+int cgload(int value) {
+
+  int r= alloc_register();
+
+  fprintf(Outfile, "\tmovq\t$%d, %s\n", value, reglist[r]);
+  return(r);
+}
+int cgadd(int r1, int r2) {
+  fprintf(Outfile, "\taddq\t%s, %s\n", reglist[r1], reglist[r2]);
+  free_register(r1);
+  return(r2);
+}
+
+int cgsub(int r1, int r2) {
+  fprintf(Outfile, "\tsubq\t%s, %s\n", reglist[r2], reglist[r1]);
+  free_register(r2);
+  return(r1);
+}
+int cgmul(int r1, int r2) {
+  fprintf(Outfile, "\timulq\t%s, %s\n", reglist[r1], reglist[r2]);
+  free_register(r1);
+  return(r2);
+}
+int cgdiv(int r1, int r2) {
+  fprintf(Outfile, "\tmovq\t%s,%%rax\n", reglist[r1]);
+  fprintf(Outfile, "\tcqo\n");
+  fprintf(Outfile, "\tidivq\t%s\n", reglist[r2]);
+  fprintf(Outfile, "\tmovq\t%%rax,%s\n", reglist[r1]);
+  free_register(r2);
+  return(r1);
+}
+
+void cgprintint(int r) {
+  fprintf(Outfile, "\tmovq\t%s, %%rdi\n", reglist[r]);
+  fprintf(Outfile, "\tcall\tprintint\n");
+  free_register(r);
+}
+
+```
+
+This is the code to initialize the program and to define what function to call for the current interation of the whole procedure.
+
+```c
+#include "defs.h"
+#include "data.h"
+#include "decl.h"
+
+static int genAST(struct ASTnode *n) {
+  int leftreg, rightreg;
+
+  if (n->left)
+    leftreg = genAST(n->left);
+  if (n->right)
+    rightreg = genAST(n->right);
+
+  switch (n->op) {
+    case A_ADD:
+      return (cgadd(leftreg,rightreg));
+    case A_SUBTRACT:
+      return (cgsub(leftreg,rightreg));
+    case A_MULTIPLY:
+      return (cgmul(leftreg,rightreg));
+    case A_DIVIDE:
+      return (cgdiv(leftreg,rightreg));
+    case A_INTLIT:
+      return (cgload(n->intvalue));
+    default:
+      fprintf(stderr, "Unknown AST operator %d\n", n->op);
+      exit(1);
+  }
+}
+
+void generatecode(struct ASTnode *n) {
+  int reg;
+
+  cgpreamble();
+  reg= genAST(n);
+  cgprintint(reg);
+  cgpostamble();
+}
+
+```
+
+
+<h3>TO achieve our first compile we can run we can just run our makefile</h3>
+
+```makefile
+comp1: cg.c expr.c gen.c Interp.c main.c scan.c tree.c
+	cc -o comp1 -g cg.c expr.c gen.c Interp.c main.c scan.c tree.c
+
+compn: cgn.c expr.c gen.c Interp.c main.c scan.c tree.c
+	cc -o compn -g cgn.c expr.c gen.c Interp.c main.c scan.c tree.c
+
+clean:
+	rm -f comp1 compn *.o *.s out
+
+test: comp1
+	./comp1 input01
+	cc -o out out.s
+	./out
+	./comp1 input02
+	cc -o out out.s
+	./out
+
+testn: compn
+	./compn input01
+	nasm -f elf64 out.s
+	cc -no-pie -o out out.o
+	./out
+	./compn input02
+	nasm -f elf64 out.s
+	cc -no-pie -o out out.o
+	./out
+```
+
+
+The assembly output for the test case of input01 file which is `2 + 4 * 5 - 8 / 3`
+
+is as follows and can be found in out.s
+```asm
+	.text
+.LC0:
+	.string	"%d\n"
+printint:
+	pushq	%rbp
+	movq	%rsp, %rbp
+	subq	$16, %rsp
+	movl	%edi, -4(%rbp)
+	movl	-4(%rbp), %eax
+	movl	%eax, %esi
+	leaq	.LC0(%rip), %rdi
+	movl	$0, %eax
+	call	printf@PLT
+	nop
+	leave
+	ret
+
+	.globl	main
+	.type	main, @function
+main:
+	pushq	%rbp
+	movq	%rsp, %rbp
+	movq	$13, %r8
+	movq	$6, %r9
+	subq	%r9, %r8
+	movq	$4, %r9
+	movq	$5, %r10
+	imulq	%r9, %r10
+	addq	%r8, %r10
+	movq	$8, %r8
+	movq	$3, %r9
+	movq	%r8,%rax
+	cqo
+	idivq	%r9
+	movq	%rax,%r8
+	addq	%r10, %r8
+	movq	%r8, %rdi
+	call	printint
+	movl	$0, %eax
+	popq	%rbp
+	ret
+
+```
+
+Well now technically we have a working compiler.
+
+<h3>Conclusion</h3>
+
+Changing from the interpreter to a generic code generator was trivial, but then we had to write some code to generate real assembly output. To do this, we had to think about how to allocate registers: for now, we have a naive solution. 
