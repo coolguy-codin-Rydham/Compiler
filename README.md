@@ -9,8 +9,6 @@ Building a compiler is not an easy task and definitely not a small one. So let's
 <li>Meaning Translation</li>
 </ol>
 
-
-
 Let's build a Lexical Scanner now.
 
 <h2>What is a Lexical Scanner</h2>
@@ -308,6 +306,7 @@ struct token
 };
 
 ```
+
 <br>
 <br>
 <br>
@@ -348,6 +347,7 @@ number : T_INTLIT
 ```
 
 The above expression is read as:
+
 <ul>
     <li>An expression could be just a number, or</li>
     <li>An expression is two expressions separated by '+' token, or</li>
@@ -357,7 +357,6 @@ The above expression is read as:
     <li>A number is always a T_INTLIT token</li>
 </ul>
 
-
 <h2>Recursive Descent Parsing</h2>
 
 Given that the grammar for our language is recursive, let's try to parse it recursively. What we can do is to read in a token, the look ahead to the next token. Based on what the next token is, we can then decide what path we need to take to parse the input.
@@ -365,16 +364,18 @@ Given that the grammar for our language is recursive, let's try to parse it recu
 In out case, the first token in any expression will be a number and this may be followed by maths operator. After that there may only be a single number, or there may be the start of a whole new expression.
 
 Pseudo-code for a recursive code looks something this:
+
 ```
 function express(){
 
-    Scan and check the first token is a number. Error if it's not 
+    Scan and check the first token is a number. Error if it's not
     Get the next token
     If we have reached the end of the input, return, i.e. base case
 
     Otherwise, call expression()
 }
 ```
+
 Let's run this function on input 2+3-5 T_EOF where T_EOF is a token that reflects the end of the input. I will number each call to expression().
 
 ```
@@ -403,7 +404,6 @@ In short Parser is just syntax analysis.
 
 Semantic Analysis is someone else's job.
 
-
 <h2>Abstract Syntax Trees</h2>
 
 An AST is a Data Structure used in compilers and interpreters to represent the structure of the source code. It abstracts away the specific syntax of the code (such as parenthesis, semicolons, etc.) and instead represents the hierarchial structure of the code in terms of its programming constructs.
@@ -421,7 +421,7 @@ enum{
 
 struct ASTnode{
     int op;     //"Operations to be performed on the tree."
-    struct ASTnode* left; 
+    struct ASTnode* left;
     struct ASTnode* right;
     int intValue;
 };
@@ -543,7 +543,7 @@ struct ASTnode *binexpr(void){
     n = mkastnode(nodetype, left, right, 0);
 
     return n;
-    
+
 }
 ```
 
@@ -563,7 +563,7 @@ This code is the a AST generator for an arithmetic expression evaluator.
 
 <h2>Interpreting the Tree</h2>
 
-Now that we have out AST tree though it is not correct, let's interpret it. 
+Now that we have out AST tree though it is not correct, let's interpret it.
 
 pseudo-code:
 
@@ -643,6 +643,7 @@ int interpretAST(struct ASTnode *n){
 <h2>Building the Parser</h2>
 
 The following code is added to the `main.c`:
+
 ```c
 scan(&Token);                 // Get the first token from the input
 n = binexpr();                // Parse the expression in the file
@@ -653,7 +654,7 @@ exit(0);
 Output from running the parser
 
 ```bash
-$ gcc -o parser -g expr.c Interp.c main.c scan.c tree.c 
+$ gcc -o parser -g expr.c Interp.c main.c scan.c tree.c
 
 $ cat input01
 2 + 4 * 5 - 8 / 3
@@ -716,3 +717,251 @@ Unrecognised character a on line 1
 A parser recognizes the grammar/ syntax of the language and checks that the input to the compiler conforms to this grammar. It it doesn't, the parser should print out an error message.
 
 Right now out parser works but doesn't output the value correctly.
+
+<br><br>
+
+<h2>Operator Precedence</h2>
+
+Our previous code is producing the following output for the test case 2 _ 3 + 4 _ 5
+
+```
+       *
+      / \
+     2   +
+        / \
+       3   *
+          / \
+         4   4
+```
+
+But the correct one is
+
+```
+        +
+       / \
+      /   \
+     /     \
+    *        *
+   / \      / \
+  /   \    /   \
+ 2     3  4     5
+```
+
+To achieve this we must add code to our parser to perform operator precedence. There are (at least) two ways of doing this:
+
+<ul>
+    <li>
+        Making the operator precedence explicit in the language's grammar
+    </li>
+    <li>
+        Influencing the existing parser with an operator precedence table
+    </li>
+</ul>
+
+
+## Pratt Parsing
+
+I am gonna paste a GPT explanation of the Pratt Parsing and then i am gonna provide my implementation.
+
+```
+Pratt parsing is a parsing technique used in computer science for processing and interpreting expressions, particularly those involving operator precedence and associativity. It was introduced by Vaughan Pratt in 1973 as a way to efficiently parse expressions in a recursive-descent manner, with a focus on handling different levels of operator precedence without the need for explicit grammar rules for each level.
+
+
+Key Concepts of Pratt Parsing:
+
+
+    Nud (Null Denotation): This function is responsible for handling expressions that do not have a left-hand side (null denotation). This typically includes literals (like numbers) and prefix operators (like - for negation).
+
+    Led (Left Denotation): This function is responsible for handling expressions that have a left-hand side, particularly when dealing with infix operators (like + or *). It processes the left-hand side and then continues parsing the right-hand side based on operator precedence.
+
+    Precedence Levels: Pratt parsing uses precedence levels to control the parsing of operators. Operators with higher precedence are parsed first, which allows the parser to correctly interpret expressions like 3 + 4 * 5 as 3 + (4 * 5).
+
+    Binding Power: Each operator or token is associated with a "binding power," which dictates how tightly it binds to the expressions on its left or right. This concept is used to resolve ambiguity in expressions.
+
+How Pratt Parsing Works:
+
+
+    The parser starts by reading a token.
+
+    Depending on the type of the token (literal, operator, etc.), it will either use a nud function or a led function.
+
+    The nud function is used when the token doesn't have a left-hand side (e.g., a number or a unary operator).
+
+    The led function is used when the token is an infix operator that needs to combine the left-hand side with something on the right.
+
+    The parser recursively processes the expression, respecting operator precedence and associativity rules.
+
+
+Example:
+
+
+Consider the expression 2 + 3 * 4. Using Pratt parsing:
+
+    The parser sees 2, which is handled by a nud function (since it's a literal).
+
+    Then it sees +, which is handled by a led function. The parser will then look for the next part of the expression.
+
+    The parser sees 3 * 4. Since * has a higher precedence than +, the multiplication is processed first, resulting in 12.
+
+    The expression is then evaluated as 2 + 12.
+
+Advantages:
+
+    Simplicity: It is a relatively simple way to implement parsers for languages with complex expressions, especially when compared to other parsing techniques.
+
+    Flexibility: It can handle a wide range of grammars and can be easily extended to support new operators or precedence levels.
+
+
+Pratt parsing is commonly used in interpreters and compilers, particularly for programming languages with complex operator precedence, such as arithmetic expressions in calculators or scripting languages.
+
+```
+
+
+Complete overview of new expr.c file
+
+
+Function Overview
+
+    primary():
+        This function handles the lowest level of expression parsing, specifically integer literals.
+        It checks if the current token (Token.token) is an integer literal (T_INTLIT). If so, it creates an AST (Abstract Syntax Tree) leaf node representing that integer literal and advances the token using scan(&Token).
+        If the token is not an integer literal, it throws a syntax error.
+
+    arithop():
+        This function converts a token representing an arithmetic operator into a corresponding internal representation (e.g., T_PLUS -> A_ADD).
+        If the token isn't a recognized operator, it throws an error.
+
+    op_precedence():
+        This function retrieves the precedence of an operator token from the OpPrec array. Operators with higher precedence values are executed before those with lower values.
+        If the token's precedence is 0 (indicating an invalid token), the function throws an error.
+
+    binexpr(int ptp):
+        This is the core of the expression parsing, handling binary expressions based on operator precedence.
+        It starts by parsing the left-hand side (LHS) of the expression using primary().
+        It then checks the current token type. If it's EOF, it returns the left-hand side (as the expression is complete).
+        Otherwise, it enters a loop to parse binary expressions:
+            It scans for the next token and then recursively parses the right-hand side (RHS) of the expression.
+            It creates an AST node using the operator token and both the left and right sides.
+            The loop continues as long as operators with higher precedence than ptp are found.
+        Finally, the function returns the left-hand side of the parsed expression, which would be the root of the AST for that expression.
+
+Dry Run
+
+Let's assume we are parsing the expression 2 + 3 * 4. The tokens would be:
+
+    T_INTLIT(2)
+    T_PLUS
+    T_INTLIT(3)
+    T_STAR
+    T_INTLIT(4)
+    T_EOF
+
+Initial State:
+
+    Token.token = T_INTLIT(2)
+    Line is used for error reporting, assuming Line = 1 for simplicity.
+
+Step-by-Step Execution:
+
+    First Call to binexpr(0):
+        Call to primary():
+            Token.token is T_INTLIT(2).
+            primary() creates an AST leaf node for 2 (A_INTLIT).
+            Token is advanced to T_PLUS.
+            Returns the AST node for 2.
+        tokentype is T_PLUS.
+        Enters the while loop since the precedence of T_PLUS (10) is greater than ptp = 0.
+
+    Second Call to binexpr(10):
+        scan() advances the token to T_INTLIT(3).
+        Call to primary():
+            Token.token is T_INTLIT(3).
+            primary() creates an AST leaf node for 3.
+            Token is advanced to T_STAR.
+            Returns the AST node for 3.
+        tokentype is T_STAR.
+        Enters the while loop since the precedence of T_STAR (20) is greater than ptp = 10.
+
+    Third Call to binexpr(20):
+        scan() advances the token to T_INTLIT(4).
+        Call to primary():
+            Token.token is T_INTLIT(4).
+            primary() creates an AST leaf node for 4.
+            Token is advanced to T_EOF.
+            Returns the AST node for 4.
+        tokentype is T_EOF.
+        Exits the while loop since EOF has no precedence.
+        Returns the AST node for 4.
+
+    Returning from the Recursive Calls:
+        The third call to binexpr(20) returns an AST node representing 4.
+        The second call to binexpr(10) creates an AST node for A_MULTIPLY with 3 and 4 as children, and returns it.
+        The first call to binexpr(0) creates an AST node for A_ADD with 2 as the left child and the A_MULTIPLY node (representing 3 * 4) as the right child.
+        This final AST node, representing 2 + (3 * 4), is returned as the root of the AST for the entire expression.
+
+Resulting AST
+
+The final AST will represent the expression as follows:
+
+```
+
+    A_ADD
+   /     \
+  2    A_MULTIPLY
+       /         \
+      3           4
+```
+This tree structure respects operator precedence, where multiplication is evaluated before addition, ensuring the correct evaluation of the expression 2 + 3 * 4 as 2 + 12, resulting in 14.
+
+
+```bash
+$ gcc -o parser -g scan.c tree.c main.c Interp.c expr.c 
+
+$ cat input01
+2 + 4 * 5 - 8 / 3
+
+$ cat input03
+13 -6+  4*
+5
+       +
+08 / 3
+
+$ ./parser input01
+int 2
+int 4
+int 5
+4 * 5
+2 + 20
+int 8
+int 3
+8 / 3
+22 - 2
+20
+
+$ ./parser input03
+int 13
+int 6
+13 - 6
+int 4
+int 5
+4 * 5
+7 + 20
+int 8
+int 3
+8 / 3
+27 + 2
+29
+
+```
+
+
+## Conclusion and What's Next
+
+It's probably time step back a bit and see where we've got to. We now have:
+
+<ul>
+<li>A scanner that recognizes and returns the tokens in our language</li>
+<li>A parser that recognizes our grammar, reports syntax errors and builds an Abstract Syntax Tree</li>
+<li>A precedence table for the parser that implements the semantics of our language</li>
+<li>An interpreter that traverses the Abstract Syntax Tree depth-first and calculates the result of the expression in the input</li>
+</ul>
