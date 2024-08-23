@@ -1,34 +1,35 @@
 #include "defs.h"
 #include "data.h"
 #include "decl.h"
+
 static struct ASTnode *primary(void) {
   struct ASTnode *n;
-
   switch (Token.token) {
-  case T_INTLIT:
-    n = mkastleaf(A_INTLIT, Token.intvalue);
-    scan(&Token);
-    return (n);
-  default:
-    fprintf(stderr, "syntax error on line %d, token %d\n", Line, Token.token);
-    exit(1);
+    case T_INTLIT:
+      n = mkastleaf(A_INTLIT, Token.intvalue);
+      scan(&Token);
+      return (n);
+    default:
+      fprintf(stderr, "syntax error on line %d, token %d\n", Line,
+	      Token.token);
+      exit(1);
   }
 }
 
 
-int arithop(int tokentype) {
+static int arithop(int tokentype) {
   switch (tokentype) {
-  case T_PLUS:
-    return (A_ADD);
-  case T_MINUS:
-    return (A_SUBTRACT);
-  case T_STAR:
-    return (A_MULTIPLY);
-  case T_SLASH:
-    return (A_DIVIDE);
-  default:
-    fprintf(stderr, "syntax error on line %d, token %d\n", Line, tokentype);
-    exit(1);
+    case T_PLUS:
+      return (A_ADD);
+    case T_MINUS:
+      return (A_SUBTRACT);
+    case T_STAR:
+      return (A_MULTIPLY);
+    case T_SLASH:
+      return (A_DIVIDE);
+    default:
+      fprintf(stderr, "syntax error on line %d, token %d\n", Line, tokentype);
+      exit(1);
   }
 }
 
@@ -46,10 +47,11 @@ static int op_precedence(int tokentype) {
 struct ASTnode *binexpr(int ptp) {
   struct ASTnode *left, *right;
   int tokentype;
+
   left = primary();
 
   tokentype = Token.token;
-  if (tokentype == T_EOF)
+  if (tokentype == T_SEMI)
     return (left);
 
   while (op_precedence(tokentype) > ptp) {
@@ -59,7 +61,7 @@ struct ASTnode *binexpr(int ptp) {
 
     left = mkastnode(arithop(tokentype), left, right, 0);
     tokentype = Token.token;
-    if (tokentype == T_EOF)
+    if (tokentype == T_SEMI)
       return (left);
   }
 

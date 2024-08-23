@@ -962,13 +962,12 @@ It's probably time step back a bit and see where we've got to. We now have:
 <li>An interpreter that traverses the Abstract Syntax Tree depth-first and calculates the result of the expression in the input</li>
 </ul>
 
-
 <br><br>
 
 <h2>Actual Compiler</h2>
 It's about time we start making the actual thing. So let's replace the interpreter into our program that generated x86-64 assembly code.
 
-These are  the operations that are used to give assembly commands using the C. Following is the function for freeall Registers, allocate Registers, Free Register, code generateor for preamble code generator for postamble and for loading, arithmetic operations and printing.
+These are the operations that are used to give assembly commands using the C. Following is the function for freeall Registers, allocate Registers, Free Register, code generateor for preamble code generator for postamble and for loading, arithmetic operations and printing.
 
 ```c
 
@@ -1126,7 +1125,6 @@ void generatecode(struct ASTnode *n) {
 
 ```
 
-
 <h3>TO achieve our first compile we can run we can just run our makefile</h3>
 
 ```makefile
@@ -1158,10 +1156,10 @@ testn: compn
 	./out
 ```
 
-
 The assembly output for the test case of input01 file which is `2 + 4 * 5 - 8 / 3`
 
 is as follows and can be found in out.s
+
 ```asm
 	.text
 .LC0:
@@ -1211,4 +1209,126 @@ Well now technically we have a working compiler.
 
 <h3>Conclusion</h3>
 
-Changing from the interpreter to a generic code generator was trivial, but then we had to write some code to generate real assembly output. To do this, we had to think about how to allocate registers: for now, we have a naive solution. 
+Changing from the interpreter to a generic code generator was trivial, but then we had to write some code to generate real assembly output. To do this, we had to think about how to allocate registers: for now, we have a naive solution.
+
+# Let's work on getting Statements
+
+It's time to add some "proper" statements to the grammar of our language. I want to be able to write lines of code like this:
+
+```
+print 2+3*5;
+print 18-6/3+4*2;
+```
+
+Each statement starts with the keyword print and is terminated with a semicolon. So these are going to become new tokens in our language.
+
+## BNF Description
+
+```
+statements: statement
+     | statement statements
+     ;
+
+statement: 'print' expression ';'
+     ;
+```
+
+An input file consists of several statements. They are either one statement, or a statement followed by more statements. Each statement starts with the keyword print, then one expression, then a semicolon.
+
+<h3>Changes to Lexical Scanner</h3>
+
+```c
+static int scanident(int c, char *buf, int lim) {
+  int i = 0;
+
+  while (isalpha(c) || isdigit(c) || '_' == c) {
+    if (lim - 1 == i) {
+      printf("identifier too long on line %d\n", Line);
+      exit(1);
+    } else if (i < lim - 1) {
+      buf[i++] = c;
+    }
+    c = next();
+  }
+  putback(c);
+  buf[i] = '\0';
+  return (i);
+}
+```
+
+In `scan.c`, I've added this code which I've borrowed from the SubC compiler. It reads in alphanumeric characters into a buffer until it hits a non-alphanumeric character.
+
+We also need a function to recognise keywords in the language. One way would be to have a list of keywords, and to walk the list and `strcmp()` each one against the buffer from `scanident()`. The code from SubC has an optimisation: match against the first letter before doing the `strcmp()`. This speeds up the comparison against dozens of keywords. Right now we don't need this optimisation but I've put it in for later:
+
+```c
+static int keyword(char *s) {
+  switch (*s) {
+    case 'p':
+      if (!strcmp(s, "print"))
+        return (T_PRINT);
+      break;
+  }
+  return (0);
+}
+```
+
+Now, at the bottom of the switch statement in scan(), we add this code to recognise semicolons and keywords:
+
+```c
+    case ';':
+      t->token = T_SEMI;
+      break;
+    default:
+
+      // If it's a digit, scan the
+      // literal integer value in
+      if (isdigit(c)) {
+        t->intvalue = scanint(c);
+        t->token = T_INTLIT;
+        break;
+      } else if (isalpha(c) || '_' == c) {
+        // Read in a keyword or identifier
+        scanident(c, Text, TEXTLEN);
+
+        // If it's a recognised keyword, return that token
+        if (tokentype = keyword(Text)) {
+          t->token = tokentype;
+          break;
+        }
+        // Not a recognised keyword, so an error for now
+        printf("Unrecognised symbol %s on line %d\n", Text, Line);
+        exit(1);
+      }
+      // The character isn't part of any recognised token, error
+      printf("Unrecognised character %c on line %d\n", c, Line);
+      exit(1);
+```
+
+
+<h4>Test</h4>
+
+```bash
+$ make
+cc -o comp1 -g cg.c expr.c gen.c main.c misc.c scan.c stmt.c tree.c
+
+$ cat input01
+print 12 * 3;
+print 
+   18 - 2
+      * 4; print
+1 + 2 +
+  9 - 5/2 + 3*5;
+
+$ make test
+./comp1 input01
+cc -o out out.s
+./out
+36
+10
+25
+```
+
+
+<h3>Conclusion</h3>
+
+We've added our first "real" statement grammar to our language. I've defined it in BNF notation, but it was easier to implement it with a loop and not recursively. 

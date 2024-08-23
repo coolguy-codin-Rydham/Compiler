@@ -2,13 +2,16 @@
 #include <stdio.h>
 #include <string.h>
 #include <ctype.h>
+
+#define TEXTLEN		512	
+
 enum {
-  T_EOF, T_PLUS, T_MINUS, T_STAR, T_SLASH, T_INTLIT
+  T_EOF, T_PLUS, T_MINUS, T_STAR, T_SLASH, T_INTLIT, T_SEMI, T_PRINT
 };
 
 struct token {
-  int token;				
-  int intvalue;
+  int token;			
+  int intvalue;		
 };
 
 enum {
@@ -16,8 +19,8 @@ enum {
 };
 
 struct ASTnode {
-  int op;				
-  struct ASTnode *left;			
+  int op;			
+  struct ASTnode *left;		
   struct ASTnode *right;
-  int intvalue;
+  int intvalue;			
 };
