@@ -2,3 +2,7 @@ Copy
 waste
 
 ./*/a.out
+
+out
+*.out
+*.o
