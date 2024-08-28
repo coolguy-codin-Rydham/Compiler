@@ -722,7 +722,7 @@ Right now out parser works but doesn't output the value correctly.
 
 <h2>Operator Precedence</h2>
 
-Our previous code is producing the following output for the test case 2 _ 3 + 4 _ 5
+Our previous code is producing the following output for the test case 2 * 3 + 4 * 5
 
 ```
        *
