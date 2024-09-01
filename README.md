@@ -911,6 +911,113 @@ The final AST will represent the expression as follows:
 
 This tree structure respects operator precedence, where multiplication is evaluated before addition, ensuring the correct evaluation of the expression 2 + 3 \* 4 as 2 + 12, resulting in 14.
 
+Let's Assume another example for expression say `2*3+4*7`. The token would be:
+
+    T_INTLIT(2)
+    T_STAR
+    T_INTLIT(3)
+    T_PLUS
+    T_INTLIT(4)
+    T_STAR
+    T_INTLIT(7)
+    T_EOF
+
+Initial State:
+
+    Token.token = T_INTLIT(2)
+    Line is used for error reporting, assuming Line = 1 for simplicity.
+
+Step-by-Step Execution
+
+    First Call to `binexpr(0)`:
+      Call to primary()
+          Token.token is T_INTLIT(2)
+          primary() creates an AST leaf node for 2 (A_INTLIT).
+          Token is advanced to T_PLUS.
+          Returns the AST node for 2.
+      tokentype is T_STAR.
+      Enters the while loop since the precedence of T_STAR (20) is greater than ptp = 0.
+
+
+      `AST` : 
+
+          2
+
+
+    
+    Second Call to `binexpr(20)`:
+      Call to primary()
+        Token.token is T_INTLIT(3)
+        primary() creates an AST leaf node for 3 (A_INTLIT).
+        Token is advanced to T_PLUS.
+        Returns the AST node for 3.
+      tokentype is T_PLUS
+      Exits the while loop since the precedence of T_PLUS (10) is not greater than ptp = 20.
+      Returns the AST node for 3.
+    Return from the Second Call:
+      Creates an AST node for `A_MULTIPLY` with 2 as the left child and 3 as the right child.
+  
+      A_MULTIPLY
+       /     \
+      2       3
+
+    Back to First Call `binexpr(10)`:
+      `tokentype` is T_PLUS
+      Enters the while loop since the precedence of T_PLUS (10) is greater than `ptp=0`
+    
+    Third Call to `binexpr(10)`:
+      scan() advances the token to `T_INTLIT(4)`
+      Call to primary():
+        Token.token is `T_INTLIT(4)`
+        primary() creates an AST leaf node for 4 (A_INTLIT).
+        Token is advanced to `T_STAR`.
+        Returns the AST node for 4.
+      tokentype is `T_STAR`
+      Enters the while loop since the precedence of `T_STAR` (20) is greater than `ptp=10`
+
+      `AST`  :
+
+            4
+
+      Fourth Call to `binexpr(20)`:
+      scan() advances the token to `T_INTLIT(7)`
+      Call to primary():
+        Token.token is `T_INTLIT(7)`
+        primary() creates an AST leaf node for 7 (A_INTLIT).
+        Token is advanced to `T_EOF`.
+        Returns the AST node for 7.
+      tokentype is `T_EOF`
+      Exits the while loop since `T_EOF` has not precedence.
+      Returns the AST node for 7.
+
+      `AST`:
+
+            7
+
+      Returning from the fourth call:
+
+        Creates an AST node for `A_MULTIPLY` with 4 as the left child and 7 as the right child.
+
+
+        `AST`:
+              A_MULTIPLY
+             /          \ 
+            4            7
+
+        Returning from the Third Call;
+          Creates an AST node for `A_ADD` with `A_MULTIPLY(2, 3)` as left child and `A_MULTIPLY` as the right child.
+
+        `Final AST`:
+
+                        A_ADD
+                       /      \
+                  A_MULTIPLY    A_MULTIPLY
+                   /       \     /       \
+                  2         3   4         7
+
+      
+
+
 ```bash
 $ gcc -o parser -g scan.c tree.c main.c Interp.c expr.c
 
