@@ -1439,3 +1439,44 @@ cc -o out out.s
 <h3>Conclusion</h3>
 
 We've added our first "real" statement grammar to our language. I've defined it in BNF notation, but it was easier to implement it with a loop and not recursively. 
+
+<br><br><br>
+
+<h1>Variables: Well let's what they are haha!!</h1>
+<br>
+
+## What Do we want from Variables?
+
+We want to be able to:
+<ul>
+  <li>Declare Variables</li>
+  <li>Use varaibles to get stored values</li>
+  <li>Assign Varables</li>
+</ul>
+
+Here is `input02` which will be our test program;
+```bash
+$ cat input02
+int fred;
+int jim;
+fred = 5;
+jim = 12;
+print fred + jim;
+```
+
+### The Symbol Table
+
+Every Compiler is going to need a symbol Table.
+
+<i>
+A Symbol Table is a critical data structure used in a compiler to store information about the symbols (identifiers) used in the source program. 
+</i>
+
+<b>This is GPT blabbering some definitions</b>
+
+<b>Here is my definition</b>
+
+<i>
+Think of a symbol say a hyphen '-' now how do you know that this is a hyphen, cuz the name is never given along with the symbol. Because the name of symbol is already stored in your memory along with its name mapped accordingly.
+</i>
+

@@ -2,5 +2,6 @@
     "files.associations": {
         "data.h": "c",
         "decl.h": "c"
-    }
+    },
+    "C_Cpp.errorSquiggles": "disabled"
 }
