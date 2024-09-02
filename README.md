@@ -1416,7 +1416,7 @@ Now, at the bottom of the switch statement in scan(), we add this code to recogn
 
 ```bash
 $ make
-cc -o comp1 -g cg.c expr.c gen.c main.c misc.c scan.c stmt.c tree.c
+cc -o comp1 -g expr.c cg.c gen.c main.c misc.c scan.c stmt.c tree.c
 
 $ cat input01
 print 12 * 3;
