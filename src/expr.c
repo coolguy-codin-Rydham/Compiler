@@ -2,49 +2,63 @@
 #include "data.h"
 #include "decl.h"
 
-static struct ASTnode *primary(void) {
+static struct ASTnode *primary(void)
+{
   struct ASTnode *n;
-  switch (Token.token) {
-    case T_INTLIT:
-      n = mkastleaf(A_INTLIT, Token.intvalue);
-      scan(&Token);
-      return (n);
-    default:
-      fprintf(stderr, "syntax error on line %d, token %d\n", Line,
-	      Token.token);
-      exit(1);
+  int id;
+
+  switch (Token.token)
+  {
+  case T_INTLIT:
+    n = mkastleaf(A_INTLIT, Token.intvalue);
+    break;
+  case T_IDENT:
+    id = findglob(Text);
+    if (id == -1)
+      fatals("Unknown Variable", Text);
+
+    n = mkastleaf(A_IDENT, id);
+    break;
+  default:
+    fatald("Syntax error, token", Token.token);
   }
+
+  scan(&Token);
+  return (n);
 }
 
-
-static int arithop(int tokentype) {
-  switch (tokentype) {
-    case T_PLUS:
-      return (A_ADD);
-    case T_MINUS:
-      return (A_SUBTRACT);
-    case T_STAR:
-      return (A_MULTIPLY);
-    case T_SLASH:
-      return (A_DIVIDE);
-    default:
-      fprintf(stderr, "syntax error on line %d, token %d\n", Line, tokentype);
-      exit(1);
-  }
-}
-
-static int OpPrec[] = { 0, 10, 10, 20, 20, 0 };
-
-static int op_precedence(int tokentype) {
-  int prec = OpPrec[tokentype];
-  if (prec == 0) {
-    fprintf(stderr, "syntax error on line %d, token %d\n", Line, tokentype);
+static int arithop(int tokentype)
+{
+  switch (tokentype)
+  {
+  case T_PLUS:
+    return (A_ADD);
+  case T_MINUS:
+    return (A_SUBTRACT);
+  case T_STAR:
+    return (A_MULTIPLY);
+  case T_SLASH:
+    return (A_DIVIDE);
+  default:
+    fprintf(stderr, "syntax error, token %d\n", tokentype);
     exit(1);
+  }
+}
+
+static int OpPrec[] = {0, 10, 10, 20, 20, 0};
+
+static int op_precedence(int tokentype)
+{
+  int prec = OpPrec[tokentype];
+  if (prec == 0)
+  {
+    fatald("Syntax error, token", tokentype);
   }
   return (prec);
 }
 
-struct ASTnode *binexpr(int ptp) {
+struct ASTnode *binexpr(int ptp)
+{
   struct ASTnode *left, *right;
   int tokentype;
 
@@ -54,7 +68,8 @@ struct ASTnode *binexpr(int ptp) {
   if (tokentype == T_SEMI)
     return (left);
 
-  while (op_precedence(tokentype) > ptp) {
+  while (op_precedence(tokentype) > ptp)
+  {
     scan(&Token);
 
     right = binexpr(OpPrec[tokentype]);

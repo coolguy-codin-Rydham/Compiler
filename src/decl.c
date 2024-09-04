@@ -1,7 +1,6 @@
 #include "defs.h"
-#include "decl.h"
 #include "data.h"
-
+#include "decl.h"
 void var_declaration(void)
 {
     match(T_INT, "int");
