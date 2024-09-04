@@ -255,42 +255,6 @@ static void scanfile() {
 }
 ```
 
-<h2>Test Cases</h2>
-
-The 4 files input01, input02, input03, input04 can be used to see what the tokens the scanner finds out after parsing each file, and what input files the scanner. Edge cases also exist.
-
-```bash
-$ gcc -o scanner -g main.c scan.c
-
-$ cat input01
-2 + 4 * 5 - 8 / 3
-
-$ cat input04
-23 +
-18 -
-45.6 * 2
-/   19
-
-$ ./scanner input01
-Token intlit, value 2
-Token +
-Token intlit, value 4
-Token *
-Token intlit, value 5
-Token -
-Token intlit, value 8
-Token /
-Token intlit, value 3
-
-$ ./scanner input04
-Token intlit, value 23
-Token +
-Token intlit, value 18
-Token -
-Token intlit, value 45
-Unrecognized character . on line 3
-
-```
 
 <h2>Conclusion and What's Next</h2>
 
@@ -651,67 +615,6 @@ printf("%d\n", interpretAST(n));      // Calculate the final result
 exit(0);
 ```
 
-Output from running the parser
-
-```bash
-$ gcc -o parser -g expr.c Interp.c main.c scan.c tree.c
-
-$ cat input01
-2 + 4 * 5 - 8 / 3
-
-$ ./parser input01
-int 2
-int 4
-int 5
-int 8
-int 3
-8 / 3
-5 - 2
-4 * 3
-2 + 12
-14
-
-$ cat input02
-12 34 + -56 * / - - 8 + * 2
-
-$ ./parser input02
-unknown token in arithop() on line 1
-
-$ cat input03
-13 -6+  4*
-5
-       +
-08 / 3
-
-./parser input03
-int 13
-int 6
-int 4
-int 5
-int 8
-int 3
-8 / 3
-5 + 2
-4 * 7
-6 + 28
-13 - 34
--21
-
-$ cat input04
-23 +
-18 -
-45.6 * 2
-
-$ ./parser input04
-Unrecognised character . on line 3
-
-$ cat input05
-23 * 456abcdefg
-
-$ ./parser input05
-Unrecognised character a on line 1
-
-```
 
 <h3>Conclusion</h3>
 A parser recognizes the grammar/ syntax of the language and checks that the input to the compiler conforms to this grammar. It it doesn't, the parser should print out an error message.
@@ -722,7 +625,7 @@ Right now out parser works but doesn't output the value correctly.
 
 <h2>Operator Precedence</h2>
 
-Our previous code is producing the following output for the test case 2 * 3 + 4 * 5
+Our previous code is producing the following output for the test case 2 _ 3 + 4 _ 5
 
 ```
        *
@@ -939,12 +842,12 @@ Step-by-Step Execution
       Enters the while loop since the precedence of T_STAR (20) is greater than ptp = 0.
 
 
-      `AST` : 
+      `AST` :
 
           2
 
 
-    
+
     Second Call to `binexpr(20)`:
       Call to primary()
         Token.token is T_INTLIT(3)
@@ -956,7 +859,7 @@ Step-by-Step Execution
       Returns the AST node for 3.
     Return from the Second Call:
       Creates an AST node for `A_MULTIPLY` with 2 as the left child and 3 as the right child.
-  
+
       A_MULTIPLY
        /     \
       2       3
@@ -964,7 +867,7 @@ Step-by-Step Execution
     Back to First Call `binexpr(10)`:
       `tokentype` is T_PLUS
       Enters the while loop since the precedence of T_PLUS (10) is greater than `ptp=0`
-    
+
     Third Call to `binexpr(10)`:
       scan() advances the token to `T_INTLIT(4)`
       Call to primary():
@@ -1001,7 +904,7 @@ Step-by-Step Execution
 
         `AST`:
               A_MULTIPLY
-             /          \ 
+             /          \
             4            7
 
         Returning from the Third Call;
@@ -1015,48 +918,6 @@ Step-by-Step Execution
                    /       \     /       \
                   2         3   4         7
 
-      
-
-
-```bash
-$ gcc -o parser -g scan.c tree.c main.c Interp.c expr.c
-
-$ cat input01
-2 + 4 * 5 - 8 / 3
-
-$ cat input03
-13 -6+  4*
-5
-       +
-08 / 3
-
-$ ./parser input01
-int 2
-int 4
-int 5
-4 * 5
-2 + 20
-int 8
-int 3
-8 / 3
-22 - 2
-20
-
-$ ./parser input03
-int 13
-int 6
-13 - 6
-int 4
-int 5
-4 * 5
-7 + 20
-int 8
-int 3
-8 / 3
-27 + 2
-29
-
-```
 
 ## Conclusion and What's Next
 
@@ -1229,90 +1090,7 @@ void generatecode(struct ASTnode *n) {
   cgprintint(reg);
   cgpostamble();
 }
-
 ```
-
-<h3>TO achieve our first compile we can run we can just run our makefile</h3>
-
-```makefile
-comp1: cg.c expr.c gen.c Interp.c main.c scan.c tree.c
-	cc -o comp1 -g cg.c expr.c gen.c Interp.c main.c scan.c tree.c
-
-compn: cgn.c expr.c gen.c Interp.c main.c scan.c tree.c
-	cc -o compn -g cgn.c expr.c gen.c Interp.c main.c scan.c tree.c
-
-clean:
-	rm -f comp1 compn *.o *.s out
-
-test: comp1
-	./comp1 input01
-	cc -o out out.s
-	./out
-	./comp1 input02
-	cc -o out out.s
-	./out
-
-testn: compn
-	./compn input01
-	nasm -f elf64 out.s
-	cc -no-pie -o out out.o
-	./out
-	./compn input02
-	nasm -f elf64 out.s
-	cc -no-pie -o out out.o
-	./out
-```
-
-The assembly output for the test case of input01 file which is `2 + 4 * 5 - 8 / 3`
-
-is as follows and can be found in out.s
-
-```asm
-	.text
-.LC0:
-	.string	"%d\n"
-printint:
-	pushq	%rbp
-	movq	%rsp, %rbp
-	subq	$16, %rsp
-	movl	%edi, -4(%rbp)
-	movl	-4(%rbp), %eax
-	movl	%eax, %esi
-	leaq	.LC0(%rip), %rdi
-	movl	$0, %eax
-	call	printf@PLT
-	nop
-	leave
-	ret
-
-	.globl	main
-	.type	main, @function
-main:
-	pushq	%rbp
-	movq	%rsp, %rbp
-	movq	$13, %r8
-	movq	$6, %r9
-	subq	%r9, %r8
-	movq	$4, %r9
-	movq	$5, %r10
-	imulq	%r9, %r10
-	addq	%r8, %r10
-	movq	$8, %r8
-	movq	$3, %r9
-	movq	%r8,%rax
-	cqo
-	idivq	%r9
-	movq	%rax,%r8
-	addq	%r10, %r8
-	movq	%r8, %rdi
-	call	printint
-	movl	$0, %eax
-	popq	%rbp
-	ret
-
-```
-
-Well now technically we have a working compiler.
 
 <h3>Conclusion</h3>
 
@@ -1411,34 +1189,9 @@ Now, at the bottom of the switch statement in scan(), we add this code to recogn
       exit(1);
 ```
 
-
-<h4>Test</h4>
-
-```bash
-$ make
-cc -o comp1 -g expr.c cg.c gen.c main.c misc.c scan.c stmt.c tree.c
-
-$ cat input01
-print 12 * 3;
-print 
-   18 - 2
-      * 4; print
-1 + 2 +
-  9 - 5/2 + 3*5;
-
-$ make test
-./comp1 input01
-cc -o out out.s
-./out
-36
-10
-25
-```
-
-
 <h3>Conclusion</h3>
 
-We've added our first "real" statement grammar to our language. I've defined it in BNF notation, but it was easier to implement it with a loop and not recursively. 
+We've added our first "real" statement grammar to our language. I've defined it in BNF notation, but it was easier to implement it with a loop and not recursively.
 
 <br><br><br>
 
@@ -1448,6 +1201,7 @@ We've added our first "real" statement grammar to our language. I've defined it 
 ## What Do we want from Variables?
 
 We want to be able to:
+
 <ul>
   <li>Declare Variables</li>
   <li>Use varaibles to get stored values</li>
@@ -1455,6 +1209,7 @@ We want to be able to:
 </ul>
 
 Here is `input02` which will be our test program;
+
 ```bash
 $ cat input02
 int fred;
@@ -1480,3 +1235,332 @@ A Symbol Table is a critical data structure used in a compiler to store informat
 Think of a symbol say a hyphen '-' now how do you know that this is a hyphen, cuz the name is never given along with the symbol. Because the name of symbol is already stored in your memory along with its name mapped accordingly.
 </i>
 
+```c
+//defs.h
+struct symtable
+{
+  char *name;
+}
+```
+
+```c
+//data.h
+#define NSYMBOLS 1024;                  // Number of symbol table enteries
+extern_ struct symtable Gsym[NSYMBOLS]; // Global symbol table
+static int Globs = 0;                   // Position of next free global symbol slot
+```
+
+## Scanning and New Tokens
+
+If you look at the example input file, we need a few tokens:
+
+<ul>
+  <li>'int' known as T_INT</li>
+  <li>'=' is known as T_EQUALS</li>
+  <li>identifier names, known as T_IDENT</li>
+</ul>
+
+The scanning of '=' is easy to add to scan();
+
+```c
+  case '='
+    t->token = T_EQUALS; break;
+```
+
+We can add the 'int' keyword:
+
+```c
+ case 'i':
+    if (!strcmp(s, "int"))
+      return (T_INT);
+    break;
+```
+
+## The New Grammar
+
+We're about ready to look at the changes to the grammar of our input language. As before, I'll define it with BNF notation:
+
+```
+ statements: statement
+      |      statement statements
+      ;
+
+ statement: 'print' expression ';'
+      |     'int'   identifier ';'
+      |     identifier '=' expression ';'
+      ;
+
+ identifier: T_IDENT
+      ;
+```
+
+An identifier is returned as a T_IDENT token, and we already have the code to parse print statements. But, as we now have three types of statements, it makes sense to write a function to deal with each one. Our top-level statements() function in stmt.c now looks like:
+
+```c
+void statements(void) {
+
+  while (1) {
+    switch (Token.token) {
+    case T_PRINT:
+      print_statement();
+      break;
+    case T_INT:
+      var_declaration();
+      break;
+    case T_IDENT:
+      assignment_statement();
+      break;
+    case T_EOF:
+      return;
+    default:
+      fatald("Syntax error, token", Token.token);
+    }
+  }
+}
+```
+
+## Varaible Declaration
+
+Let's look at variable declarations. This is in a new file, decl.c, as we are going to have lots of other types of declarations in the future.
+
+```c
+// Parse the declaration of a variable
+void var_declaration(void) {
+
+  // Ensure we have an 'int' token followed by an identifier
+  // and a semicolon. Text now has the identifier's name.
+  // Add it as a known identifier
+  match(T_INT, "int");
+  ident();
+  addglob(Text);
+  genglobsym(Text);
+  semi();
+}
+```
+
+The ident() and semi() functions are wrappers around match():
+
+```c
+void semi(void)  { match(T_SEMI, ";"); }
+void ident(void) { match(T_IDENT, "identifier"); }
+```
+
+## Assignment Statements
+
+```c
+void assignment_statement(void) {
+  struct ASTnode *left, *right, *tree;
+  int id;
+
+  ident();
+
+  if ((id = findglob(Text)) == -1) {
+    fatals("Undeclared variable", Text);
+  }
+  right = mkastleaf(A_LVIDENT, id);
+
+  match(T_EQUALS, "=");
+
+  left = binexpr(0);
+
+  tree = mkastnode(A_ASSIGN, left, right, 0);
+
+  genAST(tree, -1);
+  genfreeregs();
+
+  semi();
+}
+```
+
+We have a couple of new AST node types. A_ASSIGN takes the expression in the left-hand child and assigns it to the right-hand child. And the right-hand child will be an A_LVIDENT node.
+
+Why did I call this node A_LVIDENT? Because it represents an lvalue identifier. So what's an lvalue?
+
+An lvalue is a value that is tied to a specific location. Here, it's the address in memory which holds a variable's value.
+
+we assign the result of the right-hand side (i.e. the rvalue) to the variable in the left-hand side (i.e. the lvalue). The rvalue isn't tied to a specific location.
+
+## Changes to the AST Structure
+
+```c
+struct ASTnode
+{
+  int op;
+  struct ASTnode *left;
+  struct ASTnode *right;
+  union
+  {
+    int intvalue;
+    int id;
+  } v;
+};
+
+```
+
+## Generating the Assignment Code
+
+```c
+int genAST(struct ASTnode *n, int reg) {
+  int leftreg, rightreg;
+
+  if (n->left)
+    leftreg = genAST(n->left, -1);
+  if (n->right)
+    rightreg = genAST(n->right, leftreg);
+
+  switch (n->op) {
+  // already exising code
+    case A_INTLIT:
+    return (cgloadint(n->v.intvalue));
+  case A_IDENT:
+    return (cgloadglob(Gsym[n->v.id].name));
+  case A_LVIDENT:
+    return (cgstorglob(reg, Gsym[n->v.id].name));
+  case A_ASSIGN:
+    return (rightreg);
+  default:
+    fatald("Unknown AST operator", n->op);
+  }
+
+```
+
+Note that we evaluate the left-hand AST child first, and we get back a register number that holds the left-hand sub-tree's value. We now pass this register number to the right-hand sub-tree. We need to do this for A_LVIDENT nodes, so that the cgstorglob() function in cg.c knows which register holds the rvalue result of the assignment expression.
+
+So, consider this AST tree:
+
+```
+           A_ASSIGN
+          /        \
+     A_INTLIT   A_LVIDENT
+        (3)        (5)
+```
+
+## Generating x86-64 Code
+
+You would have noticed that I changed the name of the old cgload() function to cgloadint(). This is more specific. We now have a function to load the value out of a global variable (in cg.c):
+
+```c
+int cgloadglob(char *identifier) {
+  // Get a new register
+  int r = alloc_register();
+
+  // Print out the code to initialise it
+  fprintf(Outfile, "\tmovq\t%s(\%%rip), %s\n", identifier, reglist[r]);
+  return (r);
+}
+```
+
+Similarly, we need a function to save a register into a variable:
+
+```c
+// Store a register's value into a variable
+int cgstorglob(int r, char *identifier) {
+  fprintf(Outfile, "\tmovq\t%s, %s(\%%rip)\n", reglist[r], identifier);
+  return (r);
+}
+```
+
+We also need a function to create a new global integer variable:
+
+```c
+// Generate a global symbol
+void cgglobsym(char *sym) {
+  fprintf(Outfile, "\t.comm\t%s,8,8\n", sym);
+}
+```
+
+Of course, we can't let the parser access this code directly. Instead, there is a function in the generic code generator in gen.c that acts as the interface:
+
+```c
+void genglobsym(char *s) { cgglobsym(s); }
+```
+
+## Variables in Expressions
+
+So now we can assign to variables. But how do we get a variable's value into an expression. Well, we already have a primary() function to get an integer literal. Let's modify it to also load a variable's value:
+
+```c
+
+static struct ASTnode *primary(void)
+{
+  struct ASTnode *n;
+  int id;
+
+  switch (Token.token)
+  {
+  case T_INTLIT:
+    n = mkastleaf(A_INTLIT, Token.intvalue);
+    break;
+  case T_IDENT:
+    id = findglob(Text);
+    if (id == -1)
+      fatals("Unknown Variable", Text);
+
+    n = mkastleaf(A_IDENT, id);
+    break;
+  default:
+    fatald("Syntax error, token", Token.token);
+  }
+
+  scan(&Token);
+  return (n);
+}
+```
+
+Note the syntax checking in the T_IDENT case to ensure the variable has been declared before we try to use it.
+
+Also note that the AST leaf node that retrieves a variable's value is an A_IDENT node. The leaf that saves into a variable is an A_LVIDENT node. This is the difference between rvalues and lvalues.
+
+## Other Changes
+
+```c
+// Print out fatal messages
+void fatal(char *s) {
+  fprintf(stderr, "%s on line %d\n", s, Line); exit(1);
+}
+
+void fatals(char *s1, char *s2) {
+  fprintf(stderr, "%s:%s on line %d\n", s1, s2, Line); exit(1);
+}
+
+void fatald(char *s, int d) {
+  fprintf(stderr, "%s:%d on line %d\n", s, d, Line); exit(1);
+}
+
+void fatalc(char *s, int c) {
+  fprintf(stderr, "%s:%c on line %d\n", s, c, Line); exit(1);
+}
+```
+
+## Trying it out
+
+```bash
+$ make testall
+make -s hulacomp
+cc -o test1.out main.c -L. hulacomp.a
+./test1.out input01
+cc -o out out.s
+./out
+36
+10
+25
+./test1.out input02
+cc -o out out.s
+./out
+17
+./test1.out input03
+cc -o out out.s
+./out
+1
+2
+3
+4
+5
+```
+
+
+## Conclusion
+
+So that was a lot of work. We had to write the beginnings of symbol table management. We had to deal with two new statement types. We had to add some new tokens and some new AST node types. Finally, we had to add some code to generate the correct x86-64 assembly output.
+
+Try writing a few example input files and see if the compiler works as it should, especially if it detects syntax errors and semantic errors (variable use without a declaration).
