@@ -1,4 +1,4 @@
-<h1>Let's build Compiler</h1>
+<h1>Let's build Compiler : HulaLang</h1>
 
 Building a compiler is not an easy task and definitely not a small one. So let's breakdown these steps as follows:
 
