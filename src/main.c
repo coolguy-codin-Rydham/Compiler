@@ -36,6 +36,8 @@ void main(int argc, char *argv[])
     exit(1);
   }
 
+  printf("HulaLang");
+
   scan(&Token);
   genpreamble();
   statements();
